@@ -3,7 +3,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <math.h>
+#include <GL/math.h>
 #include <assert.h>
 #include <string.h>
 #include <GL/gl.h>
@@ -11,7 +11,7 @@
 #include "zmath.h"
 #include "zfeatures.h"
 
-#define DEBUG
+/* #define DEBUG  */
 /* #define NDEBUG */
 
 enum {

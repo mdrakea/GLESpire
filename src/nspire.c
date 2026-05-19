@@ -551,3 +551,15 @@ void nspire_msleep(unsigned int ms)
 {
     msleep(ms);
 }
+
+#ifdef DEBUG
+/*
+ * Set a software breakpoint in emulators
+ */
+void nspire_breakpoint()
+{
+    bkpt();
+}
+#else
+#define nspire_breakpoint() (void)0
+#endif

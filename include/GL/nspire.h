@@ -62,6 +62,13 @@ void nspire_wait_no_key(void);
 /* Sleep for specified milliseconds */
 void nspire_msleep(unsigned int ms);
 
+/* 
+ * Debugging functions
+ */
+
+/* Set a software breakpoint in emulators in debug builds, noops in release builds */
+void nspire_breakpoint();
+
 #ifdef __cplusplus
 }
 #endif

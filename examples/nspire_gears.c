@@ -12,7 +12,8 @@
  *   -: Slow down rotation
  */
 
-#include <math.h>
+#include <GL/math.h>
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>

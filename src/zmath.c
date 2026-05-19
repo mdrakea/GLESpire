@@ -3,7 +3,7 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
+#include <GL/math.h>
 #include "zmath.h"
 
 
@@ -140,7 +140,7 @@ int Matrix_Inv(float *r,float *m,int n)
 	 int i,j,k,l;
 	 float max,tmp,t;
 
-	 /* identitée dans r */
+	 /* identitï¿½e dans r */
 	 for(i=0;i<n*n;i++) r[i]=0;
 	 for(i=0;i<n;i++) r[i*n+i]=1;
 	 
