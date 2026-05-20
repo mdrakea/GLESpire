@@ -10,9 +10,10 @@
 #
 
 # Toolchain settings
-CC = nspire-gcc
-LD = nspire-ld
-GENZEHN = genzehn
+NDLESS_SDK ?= $(HOME)/Ndless/ndless-sdk
+CC = $(NDLESS_SDK)/bin/nspire-gcc
+LD = $(NDLESS_SDK)/bin/nspire-ld
+GENZEHN = $(NDLESS_SDK)/bin/genzehn
 
 # TI-Nspire-specific flags
 #
@@ -87,7 +88,7 @@ $(EXAMPLE_OBJ): $(EXAMPLES_DIR)/$(EXAMPLE_NAME).c
 
 # Link: use the library + example .o
 $(EXAMPLE_NAME).elf: $(EXAMPLE_OBJ) libTinyGL.a
-	$(LD) $(LDFLAGS) -o $@ $< -L. -lTinyGL -lm -lndls
+	$(LD) $(LDFLAGS) -o $@ $< -L. -lTinyGL -lndls
 
 $(EXAMPLE_NAME).tns: $(EXAMPLE_NAME).elf
 	$(GENZEHN) --input $< --output $@ --name "$(EXAMPLE_NAME)"

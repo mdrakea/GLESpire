@@ -42,7 +42,7 @@ void ZB_initDither(ZBuffer *zb,int nb_colors,
   int c,r,g,b,i,index,r1,g1,b1;
 
   if (nb_colors < (_R * _G * _B)) {
-    fprintf(stderr,"zdither: not enough colors\n");
+    fiprintf(stderr,"zdither: not enough colors\n");
     exit(1);
   }
 

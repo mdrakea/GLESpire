@@ -134,20 +134,20 @@ ostgl_context *ostgl_create_context(const int xsize, const int ysize,
     
     /* Validate parameters */
     if (xsize <= 0 || ysize <= 0 || numbuffers < 1) {
-        fprintf(stderr, "ostgl_create_context: invalid parameters\n");
+        fiprintf(stderr, "ostgl_create_context: invalid parameters\n");
         return NULL;
     }
     
     /* Only support 16-bit depth (RGB565) */
     if (depth != 16) {
-        fprintf(stderr, "ostgl_create_context: only 16-bit depth supported, got %d\n", depth);
+        fiprintf(stderr, "ostgl_create_context: only 16-bit depth supported, got %d\n", depth);
         /* Continue anyway - we'll use RGB565 */
     }
     
     /* Allocate our context structure */
     ctx = (TinyNspireContext *)gl_malloc(sizeof(TinyNspireContext));
     if (!ctx) {
-        fprintf(stderr, "ostgl_create_context: out of memory\n");
+        fiprintf(stderr, "ostgl_create_context: out of memory\n");
         return NULL;
     }
     
@@ -158,7 +158,7 @@ ostgl_context *ostgl_create_context(const int xsize, const int ysize,
     ctx->zbs = (ZBuffer **)gl_malloc(sizeof(ZBuffer *) * numbuffers);
     
     if (!ctx->framebuffers || !ctx->zbs) {
-        fprintf(stderr, "ostgl_create_context: out of memory\n");
+        fiprintf(stderr, "ostgl_create_context: out of memory\n");
         if (ctx->framebuffers) gl_free(ctx->framebuffers);
         if (ctx->zbs) gl_free(ctx->zbs);
         gl_free(ctx);
@@ -187,7 +187,7 @@ ostgl_context *ostgl_create_context(const int xsize, const int ysize,
     for (i = 0; i < numbuffers; i++) {
         ctx->zbs[i] = ZB_open(xsize, ysize, ZB_MODE_5R6G5B, 0, NULL, NULL, framebuffers[i]);
         if (!ctx->zbs[i]) {
-            fprintf(stderr, "ostgl_create_context: ZB_open failed for buffer %d\n", i);
+            fiprintf(stderr, "ostgl_create_context: ZB_open failed for buffer %d\n", i);
             /* Cleanup already-created buffers */
             for (int j = 0; j < i; j++) {
                 ZB_close(ctx->zbs[j]);
@@ -215,7 +215,7 @@ ostgl_context *ostgl_create_context(const int xsize, const int ysize,
     /* Create and return the oscontext wrapper */
     context = (ostgl_context *)gl_malloc(sizeof(ostgl_context));
     if (!context) {
-        fprintf(stderr, "ostgl_create_context: out of memory for oscontext\n");
+        fiprintf(stderr, "ostgl_create_context: out of memory for oscontext\n");
         for (i = 0; i < numbuffers; i++) {
             ZB_close(ctx->zbs[i]);
         }
@@ -292,19 +292,19 @@ void ostgl_make_current(ostgl_context *oscontext, const int idx)
     TinyNspireContext *ctx;
     
     if (!oscontext || idx < 0 || idx >= oscontext->numbuffers) {
-        fprintf(stderr, "ostgl_make_current: invalid parameters\n");
+        fiprintf(stderr, "ostgl_make_current: invalid parameters\n");
         return;
     }
     
     gl_ctx = gl_get_context();
     if (!gl_ctx) {
-        fprintf(stderr, "ostgl_make_current: no GL context\n");
+        fiprintf(stderr, "ostgl_make_current: no GL context\n");
         return;
     }
     
     ctx = (TinyNspireContext *)gl_ctx->opaque;
     if (!ctx) {
-        fprintf(stderr, "ostgl_make_current: no TinyNspire context\n");
+        fiprintf(stderr, "ostgl_make_current: no TinyNspire context\n");
         return;
     }
     
@@ -336,7 +336,7 @@ void ostgl_resize(ostgl_context *oscontext, const int xsize,
     int aligned_ysize = ysize & ~3;
     
     if (aligned_xsize != xsize || aligned_ysize != ysize) {
-        fprintf(stderr, "ostgl_resize: dimensions adjusted from %dx%d to %dx%d\n",
+        fiprintf(stderr, "ostgl_resize: dimensions adjusted from %dx%d to %dx%d\n",
                 xsize, ysize, aligned_xsize, aligned_ysize);
     }
     

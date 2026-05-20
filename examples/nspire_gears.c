@@ -3,7 +3,7 @@
  * Ported from the classic gears.c demo
  *
  * Build with TI-Nspire toolchain:
- *   nspire-gcc -o gears.tns gears.c nspire.c -lndls -lm -lTinyGL
+ *   nspire-gcc -o gears.tns gears.c nspire.c -lndls -lTinyGL
  *
  * Key mappings for TI-Nspire:
  *   Up/Down/Left/Right: Rotate view
@@ -22,10 +22,6 @@
 #include <GL/gl.h>
 #include <GL/oscontext.h>
 #include <GL/nspire.h>
-
-#ifndef M_PI
-#define M_PI 3.14159265
-#endif
 
 /* TI-Nspire screen dimensions */
 #define SCREEN_WIDTH  320
@@ -49,100 +45,125 @@
 /*
  * Draw a gear wheel
  */
+static inline GLfloat gear_angle(GLint i, GLint teeth)
+{
+    return (TGL_FIX_2PI * i) / teeth;
+}
+
+static inline GLfloat gear_x(GLfloat r, GLfloat angle)
+{
+    return tgl_fix_mul(r, cos(angle));
+}
+
+static inline GLfloat gear_y(GLfloat r, GLfloat angle)
+{
+    return tgl_fix_mul(r, sin(angle));
+}
+
+static inline void gear_vertex(GLfloat r, GLfloat angle, GLfloat z)
+{
+    glVertex3f(gear_x(r, angle), gear_y(r, angle), z);
+}
+
 static void gear(GLfloat inner_radius, GLfloat outer_radius, GLfloat width,
                 GLint teeth, GLfloat tooth_depth)
 {
     GLint i;
     GLfloat r0, r1, r2;
-    GLfloat angle, da;
+    GLfloat angle, da, half_width;
     GLfloat u, v, len;
 
     r0 = inner_radius;
-    r1 = outer_radius - tooth_depth / 2.0;
-    r2 = outer_radius + tooth_depth / 2.0;
+    r1 = outer_radius - tooth_depth / 2;
+    r2 = outer_radius + tooth_depth / 2;
+    half_width = width / 2;
 
-    da = 2.0 * M_PI / teeth / 4.0;
+    da = TGL_FIX_2PI / teeth / 4;
 
     glShadeModel(GL_FLAT);
-    glNormal3f(0.0, 0.0, 1.0);
+    glNormal3f(0, 0, TGL_FIX_ONE);
 
     /* Front face */
     glBegin(GL_QUAD_STRIP);
     for (i = 0; i <= teeth; i++) {
-        angle = i * 2.0 * M_PI / teeth;
-        glVertex3f(r0 * cos(angle), r0 * sin(angle), width * 0.5);
-        glVertex3f(r1 * cos(angle), r1 * sin(angle), width * 0.5);
-        glVertex3f(r0 * cos(angle), r0 * sin(angle), width * 0.5);
-        glVertex3f(r1 * cos(angle + 3 * da), r1 * sin(angle + 3 * da), width * 0.5);
+        angle = gear_angle(i, teeth);
+        gear_vertex(r0, angle, half_width);
+        gear_vertex(r1, angle, half_width);
+        gear_vertex(r0, angle, half_width);
+        gear_vertex(r1, angle + 3 * da, half_width);
     }
     glEnd();
 
     /* Front sides of teeth */
     glBegin(GL_QUADS);
-    da = 2.0 * M_PI / teeth / 4.0;
+    da = TGL_FIX_2PI / teeth / 4;
     for (i = 0; i < teeth; i++) {
-        angle = i * 2.0 * M_PI / teeth;
-        glVertex3f(r1 * cos(angle), r1 * sin(angle), width * 0.5);
-        glVertex3f(r2 * cos(angle + da), r2 * sin(angle + da), width * 0.5);
-        glVertex3f(r2 * cos(angle + 2 * da), r2 * sin(angle + 2 * da), width * 0.5);
-        glVertex3f(r1 * cos(angle + 3 * da), r1 * sin(angle + 3 * da), width * 0.5);
+        angle = gear_angle(i, teeth);
+        gear_vertex(r1, angle, half_width);
+        gear_vertex(r2, angle + da, half_width);
+        gear_vertex(r2, angle + 2 * da, half_width);
+        gear_vertex(r1, angle + 3 * da, half_width);
     }
     glEnd();
 
-    glNormal3f(0.0, 0.0, -1.0);
+    glNormal3f(0, 0, -TGL_FIX_ONE);
 
     /* Back face */
     glBegin(GL_QUAD_STRIP);
     for (i = 0; i <= teeth; i++) {
-        angle = i * 2.0 * M_PI / teeth;
-        glVertex3f(r1 * cos(angle), r1 * sin(angle), -width * 0.5);
-        glVertex3f(r0 * cos(angle), r0 * sin(angle), -width * 0.5);
-        glVertex3f(r1 * cos(angle + 3 * da), r1 * sin(angle + 3 * da), -width * 0.5);
-        glVertex3f(r0 * cos(angle), r0 * sin(angle), -width * 0.5);
+        angle = gear_angle(i, teeth);
+        gear_vertex(r1, angle, -half_width);
+        gear_vertex(r0, angle, -half_width);
+        gear_vertex(r1, angle + 3 * da, -half_width);
+        gear_vertex(r0, angle, -half_width);
     }
     glEnd();
 
     /* Back sides of teeth */
     glBegin(GL_QUADS);
-    da = 2.0 * M_PI / teeth / 4.0;
+    da = TGL_FIX_2PI / teeth / 4;
     for (i = 0; i < teeth; i++) {
-        angle = i * 2.0 * M_PI / teeth;
-        glVertex3f(r1 * cos(angle + 3 * da), r1 * sin(angle + 3 * da), -width * 0.5);
-        glVertex3f(r2 * cos(angle + 2 * da), r2 * sin(angle + 2 * da), -width * 0.5);
-        glVertex3f(r2 * cos(angle + da), r2 * sin(angle + da), -width * 0.5);
-        glVertex3f(r1 * cos(angle), r1 * sin(angle), -width * 0.5);
+        angle = gear_angle(i, teeth);
+        gear_vertex(r1, angle + 3 * da, -half_width);
+        gear_vertex(r2, angle + 2 * da, -half_width);
+        gear_vertex(r2, angle + da, -half_width);
+        gear_vertex(r1, angle, -half_width);
     }
     glEnd();
 
     /* Outward faces of teeth */
     glBegin(GL_QUAD_STRIP);
     for (i = 0; i < teeth; i++) {
-        angle = i * 2.0 * M_PI / teeth;
-        glVertex3f(r1 * cos(angle), r1 * sin(angle), width * 0.5);
-        glVertex3f(r1 * cos(angle), r1 * sin(angle), -width * 0.5);
-        u = r2 * cos(angle + da) - r1 * cos(angle);
-        v = r2 * sin(angle + da) - r1 * sin(angle);
-        len = sqrt(u * u + v * v);
-        u /= len;
-        v /= len;
-        glNormal3f(v, -u, 0.0);
-        glVertex3f(r2 * cos(angle + da), r2 * sin(angle + da), width * 0.5);
-        glVertex3f(r2 * cos(angle + da), r2 * sin(angle + da), -width * 0.5);
-        glNormal3f(cos(angle), sin(angle), 0.0);
-        glVertex3f(r2 * cos(angle + 2 * da), r2 * sin(angle + 2 * da), width * 0.5);
-        glVertex3f(r2 * cos(angle + 2 * da), r2 * sin(angle + 2 * da), -width * 0.5);
-        u = r1 * cos(angle + 3 * da) - r2 * cos(angle + 2 * da);
-        v = r1 * sin(angle + 3 * da) - r2 * sin(angle + 2 * da);
-        len = sqrt(u * u + v * v);
-        u /= len;
-        v /= len;
-        glNormal3f(v, -u, 0.0);
-        glVertex3f(r1 * cos(angle + 3 * da), r1 * sin(angle + 3 * da), width * 0.5);
-        glVertex3f(r1 * cos(angle + 3 * da), r1 * sin(angle + 3 * da), -width * 0.5);
-        glNormal3f(cos(angle), sin(angle), 0.0);
+        angle = gear_angle(i, teeth);
+        gear_vertex(r1, angle, half_width);
+        gear_vertex(r1, angle, -half_width);
+        u = gear_x(r2, angle + da) - gear_x(r1, angle);
+        v = gear_y(r2, angle + da) - gear_y(r1, angle);
+        len = tgl_fix_sqrt(tgl_fix_mul(u, u) + tgl_fix_mul(v, v));
+        if (len != 0) {
+            u = tgl_fix_div(u, len);
+            v = tgl_fix_div(v, len);
+        }
+        glNormal3f(v, -u, 0);
+        gear_vertex(r2, angle + da, half_width);
+        gear_vertex(r2, angle + da, -half_width);
+        glNormal3f(cos(angle), sin(angle), 0);
+        gear_vertex(r2, angle + 2 * da, half_width);
+        gear_vertex(r2, angle + 2 * da, -half_width);
+        u = gear_x(r1, angle + 3 * da) - gear_x(r2, angle + 2 * da);
+        v = gear_y(r1, angle + 3 * da) - gear_y(r2, angle + 2 * da);
+        len = tgl_fix_sqrt(tgl_fix_mul(u, u) + tgl_fix_mul(v, v));
+        if (len != 0) {
+            u = tgl_fix_div(u, len);
+            v = tgl_fix_div(v, len);
+        }
+        glNormal3f(v, -u, 0);
+        gear_vertex(r1, angle + 3 * da, half_width);
+        gear_vertex(r1, angle + 3 * da, -half_width);
+        glNormal3f(cos(angle), sin(angle), 0);
     }
-    glVertex3f(r1 * cos(0), r1 * sin(0), width * 0.5);
-    glVertex3f(r1 * cos(0), r1 * sin(0), -width * 0.5);
+    gear_vertex(r1, 0, half_width);
+    gear_vertex(r1, 0, -half_width);
     glEnd();
 
     glShadeModel(GL_SMOOTH);
@@ -150,20 +171,20 @@ static void gear(GLfloat inner_radius, GLfloat outer_radius, GLfloat width,
     /* Inside radius cylinder */
     glBegin(GL_QUAD_STRIP);
     for (i = 0; i <= teeth; i++) {
-        angle = i * 2.0 * M_PI / teeth;
-        glNormal3f(-cos(angle), -sin(angle), 0.0);
-        glVertex3f(r0 * cos(angle), r0 * sin(angle), -width * 0.5);
-        glVertex3f(r0 * cos(angle), r0 * sin(angle), width * 0.5);
+        angle = gear_angle(i, teeth);
+        glNormal3f(-cos(angle), -sin(angle), 0);
+        gear_vertex(r0, angle, -half_width);
+        gear_vertex(r0, angle, half_width);
     }
     glEnd();
 }
 
 
 /* Global state */
-static GLfloat view_rotx = 20.0, view_roty = 30.0, view_rotz = 0.0;
+static GLfloat view_rotx = TGL_I(20), view_roty = TGL_I(30), view_rotz = 0;
 static GLint gear1, gear2, gear3;
-static GLfloat angle = 0.0;
-static GLfloat speed = 2.0;
+static GLfloat angle = 0;
+static GLfloat speed = TGL_I(2);
 static int running = 1;
 static int fps_value = 0;
 static int fps_frames = 0;
@@ -188,7 +209,7 @@ static FrameProfile profiler_display;
 static int profiler_has_sample = 0;
 #endif
 
-/* Our framebuffers (double-buffered) */
+/* Our two framebuffers */
 static unsigned short framebuffer1[RENDER_WIDTH * RENDER_HEIGHT];
 static unsigned short framebuffer2[RENDER_WIDTH * RENDER_HEIGHT];
 static void *framebuffers[2];
@@ -523,16 +544,16 @@ static void draw(FrameProfile *profile)
     t0 = t1;
     scene_start = t0;
     glPushMatrix();
-    glRotatef(view_rotx, 1.0, 0.0, 0.0);
-    glRotatef(view_roty, 0.0, 1.0, 0.0);
-    glRotatef(view_rotz, 0.0, 0.0, 1.0);
+    glRotatef(view_rotx, TGL_FIX_ONE, 0, 0);
+    glRotatef(view_roty, 0, TGL_FIX_ONE, 0);
+    glRotatef(view_rotz, 0, 0, TGL_FIX_ONE);
     t1 = nspire_timer_ticks();
     profile->scene_setup = nspire_timer_elapsed(t0, t1);
 
     t0 = t1;
     glPushMatrix();
-    glTranslatef(-3.0, -2.0, 0.0);
-    glRotatef(angle, 0.0, 0.0, 1.0);
+    glTranslatef(-TGL_I(3), -TGL_I(2), 0);
+    glRotatef(angle, 0, 0, TGL_FIX_ONE);
     glCallList(gear1);
     glPopMatrix();
     t1 = nspire_timer_ticks();
@@ -540,8 +561,8 @@ static void draw(FrameProfile *profile)
 
     t0 = t1;
     glPushMatrix();
-    glTranslatef(3.1, -2.0, 0.0);
-    glRotatef(-2.0 * angle - 9.0, 0.0, 0.0, 1.0);
+    glTranslatef(TGL_FRAC(31,10), -TGL_I(2), 0);
+    glRotatef(-(2 * angle) - TGL_I(9), 0, 0, TGL_FIX_ONE);
     glCallList(gear2);
     glPopMatrix();
     t1 = nspire_timer_ticks();
@@ -549,8 +570,8 @@ static void draw(FrameProfile *profile)
 
     t0 = t1;
     glPushMatrix();
-    glTranslatef(-3.1, 4.2, 0.0);
-    glRotatef(-2.0 * angle - 25.0, 0.0, 0.0, 1.0);
+    glTranslatef(-TGL_FRAC(31,10), TGL_FRAC(42,10), 0);
+    glRotatef(-(2 * angle) - TGL_I(25), 0, 0, TGL_FIX_ONE);
     glCallList(gear3);
     glPopMatrix();
     t1 = nspire_timer_ticks();
@@ -577,25 +598,25 @@ static void draw(void)
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glPushMatrix();
-    glRotatef(view_rotx, 1.0, 0.0, 0.0);
-    glRotatef(view_roty, 0.0, 1.0, 0.0);
-    glRotatef(view_rotz, 0.0, 0.0, 1.0);
+    glRotatef(view_rotx, TGL_FIX_ONE, 0, 0);
+    glRotatef(view_roty, 0, TGL_FIX_ONE, 0);
+    glRotatef(view_rotz, 0, 0, TGL_FIX_ONE);
 
     glPushMatrix();
-    glTranslatef(-3.0, -2.0, 0.0);
-    glRotatef(angle, 0.0, 0.0, 1.0);
+    glTranslatef(-TGL_I(3), -TGL_I(2), 0);
+    glRotatef(angle, 0, 0, TGL_FIX_ONE);
     glCallList(gear1);
     glPopMatrix();
 
     glPushMatrix();
-    glTranslatef(3.1, -2.0, 0.0);
-    glRotatef(-2.0 * angle - 9.0, 0.0, 0.0, 1.0);
+    glTranslatef(TGL_FRAC(31,10), -TGL_I(2), 0);
+    glRotatef(-(2 * angle) - TGL_I(9), 0, 0, TGL_FIX_ONE);
     glCallList(gear2);
     glPopMatrix();
 
     glPushMatrix();
-    glTranslatef(-3.1, 4.2, 0.0);
-    glRotatef(-2.0 * angle - 25.0, 0.0, 0.0, 1.0);
+    glTranslatef(-TGL_FRAC(31,10), TGL_FRAC(42,10), 0);
+    glRotatef(-(2 * angle) - TGL_I(25), 0, 0, TGL_FIX_ONE);
     glCallList(gear3);
     glPopMatrix();
 
@@ -634,25 +655,25 @@ static void handle_input(void)
 {
     /* Check for arrow keys */
     if (nspire_is_key_pressed(KEY_NSPIRE_UP)) {
-        view_rotx += 2.0;
+        view_rotx += TGL_I(2);
     }
     if (nspire_is_key_pressed(KEY_NSPIRE_DOWN)) {
-        view_rotx -= 2.0;
+        view_rotx -= TGL_I(2);
     }
     if (nspire_is_key_pressed(KEY_NSPIRE_LEFT)) {
-        view_roty += 2.0;
+        view_roty += TGL_I(2);
     }
     if (nspire_is_key_pressed(KEY_NSPIRE_RIGHT)) {
-        view_roty -= 2.0;
+        view_roty -= TGL_I(2);
     }
 
     /* Speed control */
     if (nspire_is_key_pressed(KEY_NSPIRE_PLUS)) {
-        speed += 0.1;
+        speed += TGL_FRAC(1,10);
     }
     if (nspire_is_key_pressed(KEY_NSPIRE_MINUS)) {
-        speed -= 0.1;
-        if (speed < 0.0) speed = 0.0;
+        speed -= TGL_FRAC(1,10);
+        if (speed < 0) speed = 0;
     }
 
     /* Exit on ESC (caps key on TI-Nspire) */
@@ -667,15 +688,15 @@ static void handle_input(void)
  */
 static void reshape(int width, int height)
 {
-    GLfloat h = (GLfloat)height / (GLfloat)width;
+    GLfloat h = tgl_fix_div(TGL_I(height), TGL_I(width));
 
     glViewport(0, 0, (GLint)width, (GLint)height);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    glFrustum(-1.0, 1.0, -h, h, 5.0, 60.0);
+    glFrustum(-TGL_FIX_ONE, TGL_FIX_ONE, -h, h, TGL_I(5), TGL_I(60));
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-    glTranslatef(0.0, 0.0, -40.0);
+    glTranslatef(0, 0, -TGL_I(40));
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
@@ -685,10 +706,10 @@ static void reshape(int width, int height)
  */
 static void init(void)
 {
-    static GLfloat pos[4] = {5.0, 5.0, 10.0, 0.0};
-    static GLfloat red[4] = {0.8, 0.1, 0.0, 1.0};
-    static GLfloat green[4] = {0.0, 0.8, 0.2, 1.0};
-    static GLfloat blue[4] = {0.2, 0.2, 1.0, 1.0};
+    static GLfloat pos[4] = {TGL_I(5), TGL_I(5), TGL_I(10), 0};
+    static GLfloat red[4] = {TGL_FRAC(4,5), TGL_FRAC(1,10), 0, TGL_FIX_ONE};
+    static GLfloat green[4] = {0, TGL_FRAC(4,5), TGL_FRAC(1,5), TGL_FIX_ONE};
+    static GLfloat blue[4] = {TGL_FRAC(1,5), TGL_FRAC(1,5), TGL_FIX_ONE, TGL_FIX_ONE};
 
     glLightfv(GL_LIGHT0, GL_POSITION, pos);
     glEnable(GL_CULL_FACE);
@@ -700,19 +721,19 @@ static void init(void)
     gear1 = glGenLists(1);
     glNewList(gear1, GL_COMPILE);
     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, red);
-    gear(1.0, 4.0, 1.0, 20, 0.7);
+    gear(TGL_FIX_ONE, TGL_I(4), TGL_FIX_ONE, 20, TGL_FRAC(7,10));
     glEndList();
 
     gear2 = glGenLists(1);
     glNewList(gear2, GL_COMPILE);
     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, green);
-    gear(0.5, 2.0, 2.0, 10, 0.7);
+    gear(TGL_FIX_HALF, TGL_I(2), TGL_I(2), 10, TGL_FRAC(7,10));
     glEndList();
 
     gear3 = glGenLists(1);
     glNewList(gear3, GL_COMPILE);
     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, blue);
-    gear(1.3, 2.0, 0.5, 10, 0.7);
+    gear(TGL_FRAC(13,10), TGL_I(2), TGL_FIX_HALF, 10, TGL_FRAC(7,10));
     glEndList();
 
     /* Normals generated above are already unit length. */
@@ -727,9 +748,9 @@ int main(int argc, char **argv)
     (void)argc;
     (void)argv;
 
-    printf("TinyGL TI-Nspire Demo\n");
-    printf("Press arrow keys to rotate view\n");
-    printf("+/- to adjust speed, ESC to exit\n");
+    puts("TinyGL TI-Nspire Demo");
+    puts("Press arrow keys to rotate view");
+    puts("+/- to adjust speed, ESC to exit");
 
     /* Setup framebuffers */
     framebuffers[0] = framebuffer1;
@@ -739,7 +760,7 @@ int main(int argc, char **argv)
     context = ostgl_create_context(RENDER_WIDTH, RENDER_HEIGHT, 16,
                                     framebuffers, 2);
     if (!context) {
-        fprintf(stderr, "Failed to create TinyGL context\n");
+        fiprintf(stderr, "Failed to create TinyGL context\n");
         return 1;
     }
 
@@ -771,16 +792,11 @@ int main(int argc, char **argv)
         handle_input();
         idle_guh();
 #endif
-        
-#ifndef NSPIRE_RELEASE_BUILD
-        /* Small delay to not consume all CPU */
-        nspire_msleep(10);
-#endif
     }
 
     /* Cleanup */
     ostgl_delete_context(context);
 
-    printf("Goodbye!\n");
+    puts("Goodbye!");
     return 0;
 }

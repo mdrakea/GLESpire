@@ -4,7 +4,8 @@
 
 {
   ZBufferPoint *t,*pr1,*pr2,*l1,*l2;
-  float fdx1, fdx2, fdy1, fdy2, fz, d1, d2;
+  int fdx1, fdx2, fdy1, fdy2;
+  int64_t det, d1, d2;
   unsigned short *pz1;
   PIXEL *pp1;
   int part,update_left,update_right;
@@ -29,8 +30,8 @@
   int t1,dtdx,dtdy,dtdl_min,dtdl_max;
 #endif
 #ifdef INTERP_STZ
-  float sz1,dszdx,dszdy,dszdl_min,dszdl_max;
-  float tz1,dtzdx,dtzdy,dtzdl_min,dtzdl_max;
+  int64_t sz1,dszdx,dszdy,dszdl_min,dszdl_max;
+  int64_t tz1,dtzdx,dtzdy,dtzdl_min,dtzdl_max;
 #endif
 
   /* we sort the vertex with increasing y */
@@ -58,75 +59,65 @@
   fdx2 = p2->x - p0->x;
   fdy2 = p2->y - p0->y;
 
-  fz = fdx1 * fdy2 - fdx2 * fdy1;
-  if (fz == 0)
+  det = (int64_t)fdx1 * fdy2 - (int64_t)fdx2 * fdy1;
+  if (det == 0)
     return;
-  fz = 1.0 / fz;
-
-  fdx1 *= fz;
-  fdy1 *= fz;
-  fdx2 *= fz;
-  fdy2 *= fz;
 
 #ifdef INTERP_Z
   d1 = p1->z - p0->z;
   d2 = p2->z - p0->z;
-  dzdx = (int) (fdy2 * d1 - fdy1 * d2);
-  dzdy = (int) (fdx1 * d2 - fdx2 * d1);
+  dzdx = (int)(((int64_t)fdy2 * d1 - (int64_t)fdy1 * d2) / det);
+  dzdy = (int)(((int64_t)fdx1 * d2 - (int64_t)fdx2 * d1) / det);
 #endif
 
 #ifdef INTERP_RGB
   d1 = p1->r - p0->r;
   d2 = p2->r - p0->r;
-  drdx = (int) (fdy2 * d1 - fdy1 * d2);
-  drdy = (int) (fdx1 * d2 - fdx2 * d1);
+  drdx = (int)(((int64_t)fdy2 * d1 - (int64_t)fdy1 * d2) / det);
+  drdy = (int)(((int64_t)fdx1 * d2 - (int64_t)fdx2 * d1) / det);
 
   d1 = p1->g - p0->g;
   d2 = p2->g - p0->g;
-  dgdx = (int) (fdy2 * d1 - fdy1 * d2);
-  dgdy = (int) (fdx1 * d2 - fdx2 * d1);
+  dgdx = (int)(((int64_t)fdy2 * d1 - (int64_t)fdy1 * d2) / det);
+  dgdy = (int)(((int64_t)fdx1 * d2 - (int64_t)fdx2 * d1) / det);
 
   d1 = p1->b - p0->b;
   d2 = p2->b - p0->b;
-  dbdx = (int) (fdy2 * d1 - fdy1 * d2);
-  dbdy = (int) (fdx1 * d2 - fdx2 * d1);
+  dbdx = (int)(((int64_t)fdy2 * d1 - (int64_t)fdy1 * d2) / det);
+  dbdy = (int)(((int64_t)fdx1 * d2 - (int64_t)fdx2 * d1) / det);
 
 #endif
   
 #ifdef INTERP_ST
   d1 = p1->s - p0->s;
   d2 = p2->s - p0->s;
-  dsdx = (int) (fdy2 * d1 - fdy1 * d2);
-  dsdy = (int) (fdx1 * d2 - fdx2 * d1);
+  dsdx = (int)(((int64_t)fdy2 * d1 - (int64_t)fdy1 * d2) / det);
+  dsdy = (int)(((int64_t)fdx1 * d2 - (int64_t)fdx2 * d1) / det);
   
   d1 = p1->t - p0->t;
   d2 = p2->t - p0->t;
-  dtdx = (int) (fdy2 * d1 - fdy1 * d2);
-  dtdy = (int) (fdx1 * d2 - fdx2 * d1);
+  dtdx = (int)(((int64_t)fdy2 * d1 - (int64_t)fdy1 * d2) / det);
+  dtdy = (int)(((int64_t)fdx1 * d2 - (int64_t)fdx2 * d1) / det);
 #endif
 
 #ifdef INTERP_STZ
   {
-    float zz;
-    zz=(float) p0->z;
-    p0->sz= (float) p0->s * zz;
-    p0->tz= (float) p0->t * zz;
-    zz=(float) p1->z;
-    p1->sz= (float) p1->s * zz;
-    p1->tz= (float) p1->t * zz;
-    zz=(float) p2->z;
-    p2->sz= (float) p2->s * zz;
-    p2->tz= (float) p2->t * zz;
+    p0->sz= (int64_t)p0->s * p0->z;
+    p0->tz= (int64_t)p0->t * p0->z;
+    p1->sz= (int64_t)p1->s * p1->z;
+    p1->tz= (int64_t)p1->t * p1->z;
+    p2->sz= (int64_t)p2->s * p2->z;
+    p2->tz= (int64_t)p2->t * p2->z;
 
     d1 = p1->sz - p0->sz;
     d2 = p2->sz - p0->sz;
-    dszdx = (fdy2 * d1 - fdy1 * d2);
-    dszdy = (fdx1 * d2 - fdx2 * d1);
+    dszdx = ((int64_t)fdy2 * d1 - (int64_t)fdy1 * d2) / det;
+    dszdy = ((int64_t)fdx1 * d2 - (int64_t)fdx2 * d1) / det;
     
     d1 = p1->tz - p0->tz;
     d2 = p2->tz - p0->tz;
-    dtzdx = (fdy2 * d1 - fdy1 * d2);
-    dtzdy = (fdx1 * d2 - fdx2 * d1);
+    dtzdx = ((int64_t)fdy2 * d1 - (int64_t)fdy1 * d2) / det;
+    dtzdy = ((int64_t)fdx1 * d2 - (int64_t)fdx2 * d1) / det;
   }
 #endif
 
@@ -139,7 +130,7 @@
 
   for(part=0;part<2;part++) {
     if (part == 0) {
-      if (fz > 0) {
+      if (det > 0) {
 	update_left=1;
 	update_right=1;
 	l1=p0;
@@ -157,7 +148,7 @@
       nb_lines = p1->y - p0->y;
     } else {
       /* second part */
-      if (fz > 0) {
+      if (det > 0) {
 	update_left=0;
 	update_right=1;
 	pr1=p1;
@@ -256,7 +247,7 @@
           register unsigned int s,t;
 #endif
 #ifdef INTERP_STZ
-          float sz,tz;
+          int64_t sz,tz;
 #endif
 
           n=(x2 >> 16) - x1;

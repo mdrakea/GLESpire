@@ -6,6 +6,7 @@
  */
 
 #include "zfeatures.h"
+#include <stdint.h>
 
 #define ZB_Z_BITS 16
 
@@ -91,7 +92,7 @@ typedef struct {
   int s,t;       /* coordinates for the mapping */
   int r,g,b;     /* color indexes */
   
-  float sz,tz;   /* temporary coordinates for mapping */
+  int64_t sz,tz; /* temporary coordinates for mapping */
 } ZBufferPoint;
 
 /* zbuffer.c */

@@ -52,7 +52,7 @@ enum {
 typedef struct GLSpecBuf {
   int shininess_i;
   int last_used;
-  float buf[SPECULAR_BUFFER_SIZE+1];
+  GLfixed buf[SPECULAR_BUFFER_SIZE+1];
   struct GLSpecBuf *next;
 } GLSpecBuf;
 
@@ -62,11 +62,11 @@ typedef struct GLLight {
   V4 specular;
   V4 position;	
   V3 spot_direction;
-  float spot_exponent;
-  float spot_cutoff;
-  float attenuation[3];
+  GLfixed spot_exponent;
+  GLfixed spot_cutoff;
+  GLfixed attenuation[3];
   /* precomputed values */
-  float cos_spot_cutoff;
+  GLfixed cos_spot_cutoff;
   V3 norm_spot_direction;
   V3 norm_position;
   /* we use a linked list to know which are the enabled lights */
@@ -79,7 +79,7 @@ typedef struct GLMaterial {
   V4 ambient;
   V4 diffuse;
   V4 specular;
-  float shininess;
+  GLfixed shininess;
 
   /* computed values */
   int shininess_i;
@@ -96,7 +96,7 @@ typedef struct GLViewport {
 
 typedef union {
   int op;
-  float f;
+  GLfixed f;
   int i;
   unsigned int ui;
   void *p;
@@ -226,7 +226,7 @@ typedef struct GLContext {
   int name_stack_size;
 
   /* clear */
-  float clear_depth;
+  GLfixed clear_depth;
   V4 clear_color;
 
   /* current vertex state */
@@ -244,22 +244,22 @@ typedef struct GLContext {
   GLVertex *vertex;
 
   /* opengl 1.1 arrays  */
-  float *vertex_array;
+  GLfixed *vertex_array;
   int vertex_array_size;
   int vertex_array_stride;
-  float *normal_array;
+  GLfixed *normal_array;
   int normal_array_stride;
-  float *color_array;
+  GLfixed *color_array;
   int color_array_size;
   int color_array_stride;
-  float *texcoord_array;
+  GLfixed *texcoord_array;
   int texcoord_array_size;
   int texcoord_array_stride;
   int client_states;
   
   /* opengl 1.1 polygon offset */
-  float offset_factor;
-  float offset_units;
+  GLfixed offset_factor;
+  GLfixed offset_units;
   int offset_states;
   
   /* specular buffer. could probably be shared between contexts, 
@@ -297,7 +297,7 @@ void gl_draw_triangle_select(GLContext *c,
                              GLVertex *p0,GLVertex *p1,GLVertex *p2);
 
 /* matrix.c */
-void gl_print_matrix(const float *m);
+void gl_print_matrix(const GLfixed *m);
 /*
 void glopLoadIdentity(GLContext *c,GLParam *p);
 void glopTranslate(GLContext *c,GLParam *p);*/
@@ -328,7 +328,7 @@ void gl_fatal_error(char *format, ...);
 
 /* specular buffer "api" */
 GLSpecBuf *specbuf_get_buffer(GLContext *c, const int shininess_i, 
-                              const float shininess);
+                              const GLfixed shininess);
 
 #ifdef __BEOS__
 void dprintf(const char *, ...);
@@ -338,7 +338,7 @@ void dprintf(const char *, ...);
 #ifdef DEBUG
 
 #define dprintf(format, args...)  \
-  fprintf(stderr,"In '%s': " format "\n",__FUNCTION__, ##args);
+  fiprintf(stderr,"In '%s': " format "\n",__FUNCTION__, ##args);
 
 #else
 
@@ -355,13 +355,13 @@ void dprintf(const char *, ...);
 /* this clip epsilon is needed to avoid some rounding errors after
    several clipping stages */
 
-#define CLIP_EPSILON (1E-5)
+#define CLIP_EPSILON TGL_FRAC(1, 100000)
 
-static inline int gl_clipcode(float x,float y,float z,float w1)
+static inline int gl_clipcode(GLfixed x,GLfixed y,GLfixed z,GLfixed w1)
 {
-  float w;
+  GLfixed w;
 
-  w=w1 * (1.0 + CLIP_EPSILON);
+  w=tgl_fix_mul(w1, TGL_FIX_ONE + CLIP_EPSILON);
   return (x<-w) |
     ((x>w)<<1) |
     ((y<-w)<<2) |

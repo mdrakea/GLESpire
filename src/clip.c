@@ -12,24 +12,21 @@
 
 void gl_transform_to_viewport(GLContext *c,GLVertex *v)
 {
-  float winv;
+  GLfixed winv;
 
   /* coordinates */
-  winv=1.0/v->pc.W;
-  v->zp.x= (int) ( v->pc.X * winv * c->viewport.scale.X 
-                   + c->viewport.trans.X );
-  v->zp.y= (int) ( v->pc.Y * winv * c->viewport.scale.Y 
-                   + c->viewport.trans.Y );
-  v->zp.z= (int) ( v->pc.Z * winv * c->viewport.scale.Z 
-                   + c->viewport.trans.Z );
+  winv=tgl_fix_div(TGL_FIX_ONE, v->pc.W);
+  v->zp.x= tgl_fix_to_int(tgl_fix_mul(tgl_fix_mul(v->pc.X, winv), c->viewport.scale.X)
+                   + c->viewport.trans.X);
+  v->zp.y= tgl_fix_to_int(tgl_fix_mul(tgl_fix_mul(v->pc.Y, winv), c->viewport.scale.Y)
+                   + c->viewport.trans.Y);
+  v->zp.z= tgl_fix_to_int(tgl_fix_mul(tgl_fix_mul(v->pc.Z, winv), c->viewport.scale.Z)
+                   + c->viewport.trans.Z);
   /* color */
   if (c->lighting_enabled) {
-      v->zp.r=(int)(v->color.v[0] * (ZB_POINT_RED_MAX - ZB_POINT_RED_MIN) 
-                    + ZB_POINT_RED_MIN);
-      v->zp.g=(int)(v->color.v[1] * (ZB_POINT_GREEN_MAX - ZB_POINT_GREEN_MIN) 
-                    + ZB_POINT_GREEN_MIN);
-      v->zp.b=(int)(v->color.v[2] * (ZB_POINT_BLUE_MAX - ZB_POINT_BLUE_MIN) 
-                    + ZB_POINT_BLUE_MIN);
+      v->zp.r=tgl_fix_to_range(v->color.v[0], ZB_POINT_RED_MIN, ZB_POINT_RED_MAX);
+      v->zp.g=tgl_fix_to_range(v->color.v[1], ZB_POINT_GREEN_MIN, ZB_POINT_GREEN_MAX);
+      v->zp.b=tgl_fix_to_range(v->color.v[2], ZB_POINT_BLUE_MIN, ZB_POINT_BLUE_MAX);
   } else {
       /* no need to convert to integer if no lighting : take current color */
       v->zp.r = c->longcurrent_color[0];
@@ -40,10 +37,8 @@ void gl_transform_to_viewport(GLContext *c,GLVertex *v)
   /* texture */
 
   if (c->texture_2d_enabled) {
-    v->zp.s=(int)(v->tex_coord.X * (ZB_POINT_S_MAX - ZB_POINT_S_MIN) 
-                  + ZB_POINT_S_MIN);
-    v->zp.t=(int)(v->tex_coord.Y * (ZB_POINT_T_MAX - ZB_POINT_T_MIN) 
-                  + ZB_POINT_T_MIN);
+    v->zp.s=tgl_fix_to_range(v->tex_coord.X, ZB_POINT_S_MIN, ZB_POINT_S_MAX);
+    v->zp.t=tgl_fix_to_range(v->tex_coord.Y, ZB_POINT_T_MIN, ZB_POINT_T_MAX);
   }
 }
 
@@ -75,16 +70,16 @@ void gl_draw_point(GLContext *c,GLVertex *p0)
 
 /* line */
 
-static inline void interpolate(GLVertex *q,GLVertex *p0,GLVertex *p1,float t)
+static inline void interpolate(GLVertex *q,GLVertex *p0,GLVertex *p1,GLfixed t)
 {
-  q->pc.X=p0->pc.X+(p1->pc.X-p0->pc.X)*t;
-  q->pc.Y=p0->pc.Y+(p1->pc.Y-p0->pc.Y)*t;
-  q->pc.Z=p0->pc.Z+(p1->pc.Z-p0->pc.Z)*t;
-  q->pc.W=p0->pc.W+(p1->pc.W-p0->pc.W)*t;
+  q->pc.X=p0->pc.X+tgl_fix_mul(p1->pc.X-p0->pc.X,t);
+  q->pc.Y=p0->pc.Y+tgl_fix_mul(p1->pc.Y-p0->pc.Y,t);
+  q->pc.Z=p0->pc.Z+tgl_fix_mul(p1->pc.Z-p0->pc.Z,t);
+  q->pc.W=p0->pc.W+tgl_fix_mul(p1->pc.W-p0->pc.W,t);
 
-  q->color.v[0]=p0->color.v[0] + (p1->color.v[0]-p0->color.v[0])*t;
-  q->color.v[1]=p0->color.v[1] + (p1->color.v[1]-p0->color.v[1])*t;
-  q->color.v[2]=p0->color.v[2] + (p1->color.v[2]-p0->color.v[2])*t;
+  q->color.v[0]=p0->color.v[0] + tgl_fix_mul(p1->color.v[0]-p0->color.v[0],t);
+  q->color.v[1]=p0->color.v[1] + tgl_fix_mul(p1->color.v[1]-p0->color.v[1],t);
+  q->color.v[2]=p0->color.v[2] + tgl_fix_mul(p1->color.v[2]-p0->color.v[2],t);
 }
 
 /*
@@ -93,16 +88,16 @@ static inline void interpolate(GLVertex *q,GLVertex *p0,GLVertex *p1,float t)
 
 /* Line Clipping algorithm from 'Computer Graphics', Principles and
    Practice */
-static inline int ClipLine1(float denom,float num,float *tmin,float *tmax)
+static inline int ClipLine1(GLfixed denom,GLfixed num,GLfixed *tmin,GLfixed *tmax)
 {
-  float t;
+  GLfixed t;
 	 
   if (denom>0) {
-    t=num/denom;
+    t=tgl_fix_div(num,denom);
     if (t>*tmax) return 0;
     if (t>*tmin) *tmin=t;
   } else if (denom<0) {
-    t=num/denom;
+    t=tgl_fix_div(num,denom);
     if (t<*tmin) return 0;
     if (t<*tmax) *tmax=t;
   } else if (num>0) return 0;
@@ -111,8 +106,8 @@ static inline int ClipLine1(float denom,float num,float *tmin,float *tmax)
 
 void gl_draw_line(GLContext *c,GLVertex *p1,GLVertex *p2)
 {
-  float dx,dy,dz,dw,x1,y1,z1,w1;
-  float tmin,tmax;
+  GLfixed dx,dy,dz,dw,x1,y1,z1,w1;
+  GLfixed tmin,tmax;
   GLVertex q1,q2;
   int cc1,cc2;
   
@@ -141,7 +136,7 @@ void gl_draw_line(GLContext *c,GLVertex *p1,GLVertex *p2)
     w1=p1->pc.W;
     
     tmin=0;
-    tmax=1;
+    tmax=TGL_FIX_ONE;
     if (ClipLine1(dx+dw,-x1-w1,&tmin,&tmax) &&
         ClipLine1(-dx+dw,x1-w1,&tmin,&tmax) &&
         ClipLine1(dy+dw,-y1-w1,&tmin,&tmax) &&
@@ -175,19 +170,19 @@ void gl_draw_line(GLContext *c,GLVertex *p1,GLVertex *p2)
  */
 	 
 #define clip_func(name,sign,dir,dir1,dir2) \
-static float name(V4 *c,V4 *a,V4 *b) \
+static GLfixed name(V4 *c,V4 *a,V4 *b) \
 {\
-  float t,dX,dY,dZ,dW,den;\
+  GLfixed t,dX,dY,dZ,dW,den;\
   dX = (b->X - a->X);\
   dY = (b->Y - a->Y);\
   dZ = (b->Z - a->Z);\
   dW = (b->W - a->W);\
   den = -(sign d ## dir) + dW;\
   if (den == 0) t=0;\
-  else t = ( sign a->dir - a->W) / den;\
-  c->dir1 = a->dir1 + t * d ## dir1;\
-  c->dir2 = a->dir2 + t * d ## dir2;\
-  c->W = a->W + t * dW;\
+  else t = tgl_fix_div(sign a->dir - a->W, den);\
+  c->dir1 = a->dir1 + tgl_fix_mul(t, d ## dir1);\
+  c->dir2 = a->dir2 + tgl_fix_mul(t, d ## dir2);\
+  c->W = a->W + tgl_fix_mul(t, dW);\
   c->dir = sign c->W;\
   return t;\
 }
@@ -206,19 +201,19 @@ clip_func(clip_zmin,-,Z,X,Y)
 clip_func(clip_zmax,+,Z,X,Y)
 
 
-float (*clip_proc[6])(V4 *,V4 *,V4 *)=  {
+GLfixed (*clip_proc[6])(V4 *,V4 *,V4 *)=  {
     clip_xmin,clip_xmax,
     clip_ymin,clip_ymax,
     clip_zmin,clip_zmax
 };
 
 static inline void updateTmp(GLContext *c,
-			     GLVertex *q,GLVertex *p0,GLVertex *p1,float t)
+			     GLVertex *q,GLVertex *p0,GLVertex *p1,GLfixed t)
 {
   if (c->current_shade_model == GL_SMOOTH) {
-    q->color.v[0]=p0->color.v[0] + (p1->color.v[0]-p0->color.v[0])*t;
-    q->color.v[1]=p0->color.v[1] + (p1->color.v[1]-p0->color.v[1])*t;
-    q->color.v[2]=p0->color.v[2] + (p1->color.v[2]-p0->color.v[2])*t;
+    q->color.v[0]=p0->color.v[0] + tgl_fix_mul(p1->color.v[0]-p0->color.v[0],t);
+    q->color.v[1]=p0->color.v[1] + tgl_fix_mul(p1->color.v[1]-p0->color.v[1],t);
+    q->color.v[2]=p0->color.v[2] + tgl_fix_mul(p1->color.v[2]-p0->color.v[2],t);
   } else {
     q->color.v[0]=p0->color.v[0];
     q->color.v[1]=p0->color.v[1];
@@ -226,8 +221,8 @@ static inline void updateTmp(GLContext *c,
   }
 
   if (c->texture_2d_enabled) {
-    q->tex_coord.X=p0->tex_coord.X + (p1->tex_coord.X-p0->tex_coord.X)*t;
-    q->tex_coord.Y=p0->tex_coord.Y + (p1->tex_coord.Y-p0->tex_coord.Y)*t;
+    q->tex_coord.X=p0->tex_coord.X + tgl_fix_mul(p1->tex_coord.X-p0->tex_coord.X,t);
+    q->tex_coord.Y=p0->tex_coord.Y + tgl_fix_mul(p1->tex_coord.Y-p0->tex_coord.Y,t);
   }
 
   q->clip_code=gl_clipcode(q->pc.X,q->pc.Y,q->pc.Z,q->pc.W);
@@ -242,7 +237,7 @@ void gl_draw_triangle(GLContext *c,
                       GLVertex *p0,GLVertex *p1,GLVertex *p2)
 {
   int co,c_and,cc[3],front;
-  float norm;
+  int64_t norm;
   
   cc[0]=p0->clip_code;
   cc[1]=p1->clip_code;
@@ -253,12 +248,12 @@ void gl_draw_triangle(GLContext *c,
   /* we handle the non clipped case here to go faster */
   if (co==0) {
     
-      norm=(float)(p1->zp.x-p0->zp.x)*(float)(p2->zp.y-p0->zp.y)-
-        (float)(p2->zp.x-p0->zp.x)*(float)(p1->zp.y-p0->zp.y);
+      norm=(int64_t)(p1->zp.x-p0->zp.x)*(p2->zp.y-p0->zp.y)-
+        (int64_t)(p2->zp.x-p0->zp.x)*(p1->zp.y-p0->zp.y);
       
       if (norm == 0) return;
 
-      front = norm < 0.0;
+      front = norm < 0;
       front = front ^ c->current_front_face;
   
       /* back face culling */
@@ -294,7 +289,7 @@ static void gl_draw_triangle_clip(GLContext *c,
 {
   int co,c_and,co1,cc[3],edge_flag_tmp,clip_mask;
   GLVertex tmp1,tmp2,*q[3];
-  float tt;
+  GLfixed tt;
   
   cc[0]=p0->clip_code;
   cc[1]=p1->clip_code;
@@ -315,12 +310,6 @@ static void gl_draw_triangle_clip(GLContext *c,
 
     /* this test can be true only in case of rounding errors */
     if (clip_bit == 6) {
-#if 0
-      printf("Error:\n");
-      printf("%f %f %f %f\n",p0->pc.X,p0->pc.Y,p0->pc.Z,p0->pc.W);
-      printf("%f %f %f %f\n",p1->pc.X,p1->pc.Y,p1->pc.Z,p1->pc.W);
-      printf("%f %f %f %f\n",p2->pc.X,p2->pc.Y,p2->pc.Z,p2->pc.W);
-#endif
       return;
     }
   
@@ -439,7 +428,5 @@ void gl_draw_triangle_point(GLContext *c,
   if (p1->edge_flag) ZB_plot(c->zb,&p1->zp);
   if (p2->edge_flag) ZB_plot(c->zb,&p2->zp);
 }
-
-
 
 

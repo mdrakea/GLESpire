@@ -35,7 +35,7 @@ void glopMaterial(GLContext *c,GLParam *p)
     break;
   case GL_SHININESS:
     m->shininess=p[3].f;
-    m->shininess_i = (m->shininess/128.0f)*SPECULAR_BUFFER_RESOLUTION;
+    m->shininess_i = (int)((m->shininess * SPECULAR_BUFFER_RESOLUTION) / TGL_I(128));
     break;
   case GL_AMBIENT_AND_DIFFUSE:
     for(i=0;i<4;i++)
@@ -109,10 +109,10 @@ void glopLight(GLContext *c,GLParam *p)
     break;
   case GL_SPOT_CUTOFF:
     {
-      float a=v.v[0];
-      assert(a == 180 || (a>=0 && a<=90));
+      GLfixed a=v.v[0];
+      assert(a == TGL_I(180) || (a>=0 && a<=TGL_I(90)));
       l->spot_cutoff=a;
-      if (a != 180) l->cos_spot_cutoff=cos(a * M_PI / 180.0);
+      if (a != TGL_I(180)) l->cos_spot_cutoff=cos(tgl_fix_div_int(tgl_fix_mul(a, TGL_FIX_PI), 180));
     }
     break;
   case GL_CONSTANT_ATTENUATION:
@@ -154,7 +154,7 @@ void glopLightModel(GLContext *c,GLParam *p)
 }
 
 
-static inline float clampf(float a,float min,float max)
+static inline GLfixed clampf(GLfixed a,GLfixed min,GLfixed max)
 {
   if (a<min) return min;
   else if (a>max) return max;
@@ -180,11 +180,11 @@ void gl_enable_disable_light(GLContext *c,int light,int v)
 /* non optimized lightening model */
 void gl_shade_vertex(GLContext *c,GLVertex *v)
 {
-  float R,G,B,A;
+  GLfixed R,G,B,A;
   GLMaterial *m;
   GLLight *l;
   V3 n,s,d;
-  float dist,tmp,att,dot,dot_spot,dot_spec;
+  GLfixed dist,tmp,att,dot,dot_spot,dot_spec;
   int twoside = c->light_model_two_side;
 
   m=&c->materials[0];
@@ -193,53 +193,54 @@ void gl_shade_vertex(GLContext *c,GLVertex *v)
   n.Y=v->normal.Y;
   n.Z=v->normal.Z;
 
-  R=m->emission.v[0]+m->ambient.v[0]*c->ambient_light_model.v[0];
-  G=m->emission.v[1]+m->ambient.v[1]*c->ambient_light_model.v[1];
-  B=m->emission.v[2]+m->ambient.v[2]*c->ambient_light_model.v[2];
-  A=clampf(m->diffuse.v[3],0,1);
+  R=m->emission.v[0]+tgl_fix_mul(m->ambient.v[0],c->ambient_light_model.v[0]);
+  G=m->emission.v[1]+tgl_fix_mul(m->ambient.v[1],c->ambient_light_model.v[1]);
+  B=m->emission.v[2]+tgl_fix_mul(m->ambient.v[2],c->ambient_light_model.v[2]);
+  A=clampf(m->diffuse.v[3],0,TGL_FIX_ONE);
 
   for(l=c->first_light;l!=NULL;l=l->next) {
-    float lR,lB,lG;
+    GLfixed lR,lB,lG;
     
     /* ambient */
-    lR=l->ambient.v[0] * m->ambient.v[0];
-    lG=l->ambient.v[1] * m->ambient.v[1];
-    lB=l->ambient.v[2] * m->ambient.v[2];
+    lR=tgl_fix_mul(l->ambient.v[0], m->ambient.v[0]);
+    lG=tgl_fix_mul(l->ambient.v[1], m->ambient.v[1]);
+    lB=tgl_fix_mul(l->ambient.v[2], m->ambient.v[2]);
 
     if (l->position.v[3] == 0) {
       /* light at infinity */
       d.X=l->norm_position.v[0];
       d.Y=l->norm_position.v[1];
       d.Z=l->norm_position.v[2];
-      att=1;
+      att=TGL_FIX_ONE;
     } else {
       /* distance attenuation */
       d.X=l->position.v[0]-v->ec.v[0];
       d.Y=l->position.v[1]-v->ec.v[1];
       d.Z=l->position.v[2]-v->ec.v[2];
-      dist=sqrt(d.X*d.X+d.Y*d.Y+d.Z*d.Z);
-      if (dist>1E-10f) {
-        tmp=1/dist;
-        d.X*=tmp;
-        d.Y*=tmp;
-        d.Z*=tmp;
+      dist=sqrt(tgl_fix_mul(d.X,d.X)+tgl_fix_mul(d.Y,d.Y)+tgl_fix_mul(d.Z,d.Z));
+      if (dist>0) {
+        tmp=tgl_fix_div(TGL_FIX_ONE,dist);
+        d.X=tgl_fix_mul(d.X,tmp);
+        d.Y=tgl_fix_mul(d.Y,tmp);
+        d.Z=tgl_fix_mul(d.Z,tmp);
       }
-      att=1.0f/(l->attenuation[0]+dist*(l->attenuation[1]+
-				     dist*l->attenuation[2]));
+      att=tgl_fix_div(TGL_FIX_ONE,
+                      l->attenuation[0]+tgl_fix_mul(dist,(l->attenuation[1]+
+				      tgl_fix_mul(dist,l->attenuation[2]))));
     }
-    dot=d.X*n.X+d.Y*n.Y+d.Z*n.Z;
+    dot=tgl_fix_mul(d.X,n.X)+tgl_fix_mul(d.Y,n.Y)+tgl_fix_mul(d.Z,n.Z);
     if (twoside && dot < 0) dot = -dot;
     if (dot>0) {
       /* diffuse light */
-      lR+=dot * l->diffuse.v[0] * m->diffuse.v[0];
-      lG+=dot * l->diffuse.v[1] * m->diffuse.v[1];
-      lB+=dot * l->diffuse.v[2] * m->diffuse.v[2];
+      lR+=tgl_fix_mul(tgl_fix_mul(dot, l->diffuse.v[0]), m->diffuse.v[0]);
+      lG+=tgl_fix_mul(tgl_fix_mul(dot, l->diffuse.v[1]), m->diffuse.v[1]);
+      lB+=tgl_fix_mul(tgl_fix_mul(dot, l->diffuse.v[2]), m->diffuse.v[2]);
 
       /* spot light */
       if (l->spot_cutoff != 180) {
-        dot_spot=-(d.X*l->norm_spot_direction.v[0]+
-                   d.Y*l->norm_spot_direction.v[1]+
-                   d.Z*l->norm_spot_direction.v[2]);
+        dot_spot=-(tgl_fix_mul(d.X,l->norm_spot_direction.v[0])+
+                   tgl_fix_mul(d.Y,l->norm_spot_direction.v[1])+
+                   tgl_fix_mul(d.Z,l->norm_spot_direction.v[2]));
         if (twoside && dot_spot < 0) dot_spot = -dot_spot;
         if (dot_spot < l->cos_spot_cutoff) {
           /* no contribution */
@@ -247,7 +248,7 @@ void gl_shade_vertex(GLContext *c,GLVertex *v)
         } else {
           /* TODO: optimize */
           if (l->spot_exponent > 0) {
-            att=att*pow(dot_spot,l->spot_exponent);
+            att=tgl_fix_mul(att,tgl_fix_powi(dot_spot,tgl_fix_to_int(l->spot_exponent)));
           }
         }
       }
@@ -266,39 +267,37 @@ void gl_shade_vertex(GLContext *c,GLVertex *v)
       } else {
         s.X=d.X;
         s.Y=d.Y;
-        s.Z=d.Z+1.0;
+        s.Z=d.Z+TGL_FIX_ONE;
       }
-      dot_spec=n.X*s.X+n.Y*s.Y+n.Z*s.Z;
+      dot_spec=tgl_fix_mul(n.X,s.X)+tgl_fix_mul(n.Y,s.Y)+tgl_fix_mul(n.Z,s.Z);
       if (twoside && dot_spec < 0) dot_spec = -dot_spec;
       if (dot_spec>0) {
         GLSpecBuf *specbuf;
         int idx;
-        tmp=sqrt(s.X*s.X+s.Y*s.Y+s.Z*s.Z);
-        if (tmp > 1E-3) {
-          dot_spec=dot_spec / tmp;
+        tmp=sqrt(tgl_fix_mul(s.X,s.X)+tgl_fix_mul(s.Y,s.Y)+tgl_fix_mul(s.Z,s.Z));
+        if (tmp > TGL_FRAC(1,1000)) {
+          dot_spec=tgl_fix_div(dot_spec, tmp);
         }
       
         /* TODO: optimize */
         /* testing specular buffer code */
-        /* dot_spec= pow(dot_spec,m->shininess);*/
         specbuf = specbuf_get_buffer(c, m->shininess_i, m->shininess);
-        idx = (int)(dot_spec*SPECULAR_BUFFER_SIZE);
+        idx = tgl_fix_mul_int_to_int(dot_spec,SPECULAR_BUFFER_SIZE);
         if (idx > SPECULAR_BUFFER_SIZE) idx = SPECULAR_BUFFER_SIZE;
         dot_spec = specbuf->buf[idx];
-        lR+=dot_spec * l->specular.v[0] * m->specular.v[0];
-        lG+=dot_spec * l->specular.v[1] * m->specular.v[1];
-        lB+=dot_spec * l->specular.v[2] * m->specular.v[2];
+        lR+=tgl_fix_mul(tgl_fix_mul(dot_spec, l->specular.v[0]), m->specular.v[0]);
+        lG+=tgl_fix_mul(tgl_fix_mul(dot_spec, l->specular.v[1]), m->specular.v[1]);
+        lB+=tgl_fix_mul(tgl_fix_mul(dot_spec, l->specular.v[2]), m->specular.v[2]);
       }
     }
 
-    R+=att * lR;
-    G+=att * lG;
-    B+=att * lB;
+    R+=tgl_fix_mul(att, lR);
+    G+=tgl_fix_mul(att, lG);
+    B+=tgl_fix_mul(att, lB);
   }
 
-  v->color.v[0]=clampf(R,0,1);
-  v->color.v[1]=clampf(G,0,1);
-  v->color.v[2]=clampf(B,0,1);
+  v->color.v[0]=clampf(R,0,TGL_FIX_ONE);
+  v->color.v[1]=clampf(G,0,TGL_FIX_ONE);
+  v->color.v[2]=clampf(B,0,TGL_FIX_ONE);
   v->color.v[3]=A;
 }
-

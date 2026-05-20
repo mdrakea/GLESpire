@@ -8,6 +8,9 @@ and BeOS support.
 The remaining public headers are:
 
 - `include/GL/gl.h` for the TinyGL/OpenGL-like API.
+- `include/GL/fixed.h` for fixed-point numeric helpers such as `TGL_I`
+  and `TGL_FRAC`. `GLfloat` and `GLdouble` are fixed-point values in this
+  port.
 - `include/GL/oscontext.h` for the small framebuffer context API used by
   the Nspire port.
 - `include/GL/nspire.h` for Nspire-specific input, timing, and display

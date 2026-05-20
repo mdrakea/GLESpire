@@ -1,16 +1,17 @@
 #ifndef TINYGL_FASTMATH
 #define TINYGL_FASTMATH
+#include <GL/fixed.h>
 #include <math.h>
 
-/* Replacement, faster math functions. Either include just this file or math.h and then this file */
+/* Fixed-point math functions. */
 
-double glSine(double x);
-double glCos(double x);
+GLfixed glSine(GLfixed x);
+GLfixed glCos(GLfixed x);
 
 #ifndef NO_MATH_H_FASTMATH_PATCH
-#warning "Using fast math routines!"
 #define sin(x) glSine(x)
 #define cos(x) glCos(x)
+#define sqrt(x) tgl_fix_sqrt(x)
 #endif // NO_MATH_H_FASTMATH_PATCH
 
 #endif // TINYGL_FASTMATH

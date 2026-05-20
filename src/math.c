@@ -1,9 +1,9 @@
 #include "lut.h"
 
-double glSine(double x) {
+GLfixed glSine(GLfixed x) {
     return sin_lut_lerp(sin_lut_phase_from_radians(x));
 }
 
-double glCos(double x) {
+GLfixed glCos(GLfixed x) {
     return cos_lut_lerp(sin_lut_phase_from_radians(x));
 }

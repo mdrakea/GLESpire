@@ -1,6 +1,8 @@
 #include <stdarg.h>
 #include <stdio.h>
 
+int vfiprintf(FILE *stream, const char *format, va_list ap);
+
 #ifndef NDEBUG
 #define NDEBUG
 #endif
@@ -19,8 +21,8 @@ tgl_warning(const char *format, ...)
 #ifndef NO_DEBUG_OUTPUT
   va_list args;
   va_start(args, format);
-  fprintf(stderr, "*WARNING* ");
-  vfprintf(stderr, format, args);
+  fiprintf(stderr, "*WARNING* ");
+  vfiprintf(stderr, format, args);
   va_end(args);
 #endif /* !NO_DEBUG_OUTPUT */
 }
@@ -32,8 +34,8 @@ tgl_trace(const char *format, ...)
 #ifndef NO_DEBUG_OUTPUT
   va_list args;
   va_start(args, format);
-  fprintf(stderr, "*DEBUG* ");
-  vfprintf(stderr, format, args);
+  fiprintf(stderr, "*DEBUG* ");
+  vfiprintf(stderr, format, args);
   va_end(args);
 #endif /* !NO_DEBUG_OUTPUT */
 }
@@ -47,8 +49,8 @@ tgl_fixme(const char *format, ...)
 #ifndef NO_DEBUG_OUTPUT
   va_list args;
   va_start(args, format);
-  fprintf(stderr, "*FIXME* ");
-  vfprintf(stderr, format, args);
+  fiprintf(stderr, "*FIXME* ");
+  vfiprintf(stderr, format, args);
   va_end(args);
 #endif /* !NO_DEBUG_OUTPUT */
 }

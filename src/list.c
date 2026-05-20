@@ -21,6 +21,16 @@ static int op_table_size[]=
 #include "opinfo.h"
 };
 
+static void gl_print_fixed(FILE *f, GLfixed v)
+{
+  int ipart = tgl_fix_to_int(v);
+  GLfixed frac = v - TGL_I(ipart);
+  int frac4;
+  if (frac < 0) frac = -frac;
+  frac4 = (int)((frac * 10000) >> TGL_FIX_BITS);
+  fiprintf(f, "%d.%04d", ipart, frac4);
+}
+
 
 GLContext *gl_get_context(void)
 {
@@ -82,11 +92,11 @@ void gl_print_op(FILE *f,GLParam *p)
     if (*s == '%') {
       s++;
       switch (*s++) {
-      case 'f':
-	fprintf(f,"%g",p[0].f);
+      case 'F':
+	gl_print_fixed(f,p[0].f);
 	break;
       default:
-	fprintf(f,"%d",p[0].i);
+	fiprintf(f,"%d",p[0].i);
 	break;
       }
       p++;
@@ -95,7 +105,7 @@ void gl_print_op(FILE *f,GLParam *p)
       s++;
     }
   }
-  fprintf(f,"\n");
+  fputc('\n', f);
 }
 
 
@@ -252,4 +262,3 @@ unsigned int glGenLists(int range)
   }
   return 0;
 }
-

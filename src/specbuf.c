@@ -1,23 +1,24 @@
 #include "zgl.h"
 #include "msghandling.h"
-#include <math.h>
 #include <stdlib.h>
 
-static void calc_buf(GLSpecBuf *buf, const float shininess)
+static void calc_buf(GLSpecBuf *buf, const GLfixed shininess)
 {
   int i;
-  float val, inc;
-  val = 0.0f;
-  inc = 1.0f/SPECULAR_BUFFER_SIZE;
+  GLfixed val, inc;
+  int exp;
+  val = 0;
+  inc = TGL_FIX_ONE / SPECULAR_BUFFER_SIZE;
+  exp = tgl_fix_to_int(shininess + TGL_FIX_HALF);
   for (i = 0; i <= SPECULAR_BUFFER_SIZE; i++) {
-    buf->buf[i] = pow(val, shininess);
+    buf->buf[i] = tgl_fix_powi(val, exp);
     val += inc;
   }
 }
 
 GLSpecBuf *
 specbuf_get_buffer(GLContext *c, const int shininess_i, 
-                   const float shininess)
+                   const GLfixed shininess)
 {
   GLSpecBuf *found, *oldest;
   found = oldest = c->specbuf_first;

@@ -55,17 +55,17 @@ void glopColor(GLContext * c, GLParam * p)
 void gl_eval_viewport(GLContext * c)
 {
     GLViewport *v;
-    float zsize = (1 << (ZB_Z_BITS + ZB_POINT_Z_FRAC_BITS));
+    GLfixed zsize = TGL_I((int64_t)1 << (ZB_Z_BITS + ZB_POINT_Z_FRAC_BITS));
 
     v = &c->viewport;
 
-    v->trans.X = ((v->xsize - 0.5) / 2.0) + v->xmin;
-    v->trans.Y = ((v->ysize - 0.5) / 2.0) + v->ymin;
-    v->trans.Z = ((zsize - 0.5) / 2.0) + ((1 << ZB_POINT_Z_FRAC_BITS)) / 2;
+    v->trans.X = ((TGL_I(v->xsize) - TGL_FIX_HALF) / 2) + TGL_I(v->xmin);
+    v->trans.Y = ((TGL_I(v->ysize) - TGL_FIX_HALF) / 2) + TGL_I(v->ymin);
+    v->trans.Z = ((zsize - TGL_FIX_HALF) / 2) + TGL_I((1 << ZB_POINT_Z_FRAC_BITS) / 2);
 
-    v->scale.X = (v->xsize - 0.5) / 2.0;
-    v->scale.Y = -(v->ysize - 0.5) / 2.0;
-    v->scale.Z = -((zsize - 0.5) / 2.0);
+    v->scale.X = (TGL_I(v->xsize) - TGL_FIX_HALF) / 2;
+    v->scale.Y = -((TGL_I(v->ysize) - TGL_FIX_HALF) / 2);
+    v->scale.Z = -((zsize - TGL_FIX_HALF) / 2);
 }
 
 void glopBegin(GLContext * c, GLParam * p)
@@ -88,14 +88,14 @@ void glopBegin(GLContext * c, GLParam * p)
 	    gl_M4_Inv(&tmp, c->matrix_stack_ptr[0]);
 	    gl_M4_Transpose(&c->matrix_model_view_inv, &tmp);
 	} else {
-	    float *m = &c->matrix_model_projection.m[0][0];
+	    GLfixed *m = &c->matrix_model_projection.m[0][0];
 	    /* precompute projection matrix */
 	    gl_M4_Mul(&c->matrix_model_projection,
 		      c->matrix_stack_ptr[1],
 		      c->matrix_stack_ptr[0]);
 	    /* test to accelerate computation */
 	    c->matrix_model_projection_no_w_transform = 0;
-	    if (m[12] == 0.0 && m[13] == 0.0 && m[14] == 0.0)
+	    if (m[12] == 0 && m[13] == 0 && m[14] == 0)
 		c->matrix_model_projection_no_w_transform = 1;
 	}
 
@@ -144,39 +144,39 @@ void glopBegin(GLContext * c, GLParam * p)
 /* TODO : handle all cases */
 static inline void gl_vertex_transform(GLContext * c, GLVertex * v)
 {
-    float *m;
+    GLfixed *m;
     V4 *n;
 
     if (c->lighting_enabled) {
 	/* eye coordinates needed for lighting */
 
 	m = &c->matrix_stack_ptr[0]->m[0][0];
-	v->ec.X = (v->coord.X * m[0] + v->coord.Y * m[1] +
-		   v->coord.Z * m[2] + m[3]);
-	v->ec.Y = (v->coord.X * m[4] + v->coord.Y * m[5] +
-		   v->coord.Z * m[6] + m[7]);
-	v->ec.Z = (v->coord.X * m[8] + v->coord.Y * m[9] +
-		   v->coord.Z * m[10] + m[11]);
-	v->ec.W = (v->coord.X * m[12] + v->coord.Y * m[13] +
-		   v->coord.Z * m[14] + m[15]);
+	v->ec.X = (tgl_fix_mul(v->coord.X, m[0]) + tgl_fix_mul(v->coord.Y, m[1]) +
+		   tgl_fix_mul(v->coord.Z, m[2]) + m[3]);
+	v->ec.Y = (tgl_fix_mul(v->coord.X, m[4]) + tgl_fix_mul(v->coord.Y, m[5]) +
+		   tgl_fix_mul(v->coord.Z, m[6]) + m[7]);
+	v->ec.Z = (tgl_fix_mul(v->coord.X, m[8]) + tgl_fix_mul(v->coord.Y, m[9]) +
+		   tgl_fix_mul(v->coord.Z, m[10]) + m[11]);
+	v->ec.W = (tgl_fix_mul(v->coord.X, m[12]) + tgl_fix_mul(v->coord.Y, m[13]) +
+		   tgl_fix_mul(v->coord.Z, m[14]) + m[15]);
 
 	/* projection coordinates */
 	m = &c->matrix_stack_ptr[1]->m[0][0];
-	v->pc.X = (v->ec.X * m[0] + v->ec.Y * m[1] +
-		   v->ec.Z * m[2] + v->ec.W * m[3]);
-	v->pc.Y = (v->ec.X * m[4] + v->ec.Y * m[5] +
-		   v->ec.Z * m[6] + v->ec.W * m[7]);
-	v->pc.Z = (v->ec.X * m[8] + v->ec.Y * m[9] +
-		   v->ec.Z * m[10] + v->ec.W * m[11]);
-	v->pc.W = (v->ec.X * m[12] + v->ec.Y * m[13] +
-		   v->ec.Z * m[14] + v->ec.W * m[15]);
+	v->pc.X = (tgl_fix_mul(v->ec.X, m[0]) + tgl_fix_mul(v->ec.Y, m[1]) +
+		   tgl_fix_mul(v->ec.Z, m[2]) + tgl_fix_mul(v->ec.W, m[3]));
+	v->pc.Y = (tgl_fix_mul(v->ec.X, m[4]) + tgl_fix_mul(v->ec.Y, m[5]) +
+		   tgl_fix_mul(v->ec.Z, m[6]) + tgl_fix_mul(v->ec.W, m[7]));
+	v->pc.Z = (tgl_fix_mul(v->ec.X, m[8]) + tgl_fix_mul(v->ec.Y, m[9]) +
+		   tgl_fix_mul(v->ec.Z, m[10]) + tgl_fix_mul(v->ec.W, m[11]));
+	v->pc.W = (tgl_fix_mul(v->ec.X, m[12]) + tgl_fix_mul(v->ec.Y, m[13]) +
+		   tgl_fix_mul(v->ec.Z, m[14]) + tgl_fix_mul(v->ec.W, m[15]));
 
 	m = &c->matrix_model_view_inv.m[0][0];
 	n = &c->current_normal;
 
-	v->normal.X = (n->X * m[0] + n->Y * m[1] + n->Z * m[2]);
-	v->normal.Y = (n->X * m[4] + n->Y * m[5] + n->Z * m[6]);
-	v->normal.Z = (n->X * m[8] + n->Y * m[9] + n->Z * m[10]);
+	v->normal.X = (tgl_fix_mul(n->X, m[0]) + tgl_fix_mul(n->Y, m[1]) + tgl_fix_mul(n->Z, m[2]));
+	v->normal.Y = (tgl_fix_mul(n->X, m[4]) + tgl_fix_mul(n->Y, m[5]) + tgl_fix_mul(n->Z, m[6]));
+	v->normal.Z = (tgl_fix_mul(n->X, m[8]) + tgl_fix_mul(n->Y, m[9]) + tgl_fix_mul(n->Z, m[10]));
 
 	if (c->normalize_enabled) {
 	    gl_V3_Norm(&v->normal);
@@ -186,17 +186,17 @@ static inline void gl_vertex_transform(GLContext * c, GLVertex * v)
 	/* NOTE: W = 1 is assumed */
 	m = &c->matrix_model_projection.m[0][0];
 
-	v->pc.X = (v->coord.X * m[0] + v->coord.Y * m[1] +
-		   v->coord.Z * m[2] + m[3]);
-	v->pc.Y = (v->coord.X * m[4] + v->coord.Y * m[5] +
-		   v->coord.Z * m[6] + m[7]);
-	v->pc.Z = (v->coord.X * m[8] + v->coord.Y * m[9] +
-		   v->coord.Z * m[10] + m[11]);
+	v->pc.X = (tgl_fix_mul(v->coord.X, m[0]) + tgl_fix_mul(v->coord.Y, m[1]) +
+		   tgl_fix_mul(v->coord.Z, m[2]) + m[3]);
+	v->pc.Y = (tgl_fix_mul(v->coord.X, m[4]) + tgl_fix_mul(v->coord.Y, m[5]) +
+		   tgl_fix_mul(v->coord.Z, m[6]) + m[7]);
+	v->pc.Z = (tgl_fix_mul(v->coord.X, m[8]) + tgl_fix_mul(v->coord.Y, m[9]) +
+		   tgl_fix_mul(v->coord.Z, m[10]) + m[11]);
 	if (c->matrix_model_projection_no_w_transform) {
 	    v->pc.W = m[15];
 	} else {
-	    v->pc.W = (v->coord.X * m[12] + v->coord.Y * m[13] +
-		       v->coord.Z * m[14] + m[15]);
+	    v->pc.W = (tgl_fix_mul(v->coord.X, m[12]) + tgl_fix_mul(v->coord.Y, m[13]) +
+		       tgl_fix_mul(v->coord.Z, m[14]) + m[15]);
 	}
     }
 
@@ -218,7 +218,7 @@ void glopVertex(GLContext * c, GLParam * p)
     /* quick fix to avoid crashes on large polygons */
     if (n >= c->vertex_max) {
 	GLVertex *newarray;
-	c->vertex_max <<= 1;	/* just double size */
+	c->vertex_max <<= 1;
 	newarray = gl_malloc(sizeof(GLVertex) * c->vertex_max);
 	if (!newarray) {
 	    gl_fatal_error("unable to allocate GLVertex array.\n");

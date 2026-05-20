@@ -65,22 +65,22 @@ void glInit(void *zbuffer1)
   /* lights */
   for(i=0;i<MAX_LIGHTS;i++) {
     GLLight *l=&c->lights[i];
-    l->ambient=gl_V4_New(0,0,0,1);
-    l->diffuse=gl_V4_New(1,1,1,1);
-    l->specular=gl_V4_New(1,1,1,1);
-    l->position=gl_V4_New(0,0,1,0);
-    l->norm_position=gl_V3_New(0,0,1);
-    l->spot_direction=gl_V3_New(0,0,-1);
-    l->norm_spot_direction=gl_V3_New(0,0,-1);
+    l->ambient=gl_V4_New(0,0,0,TGL_FIX_ONE);
+    l->diffuse=gl_V4_New(TGL_FIX_ONE,TGL_FIX_ONE,TGL_FIX_ONE,TGL_FIX_ONE);
+    l->specular=gl_V4_New(TGL_FIX_ONE,TGL_FIX_ONE,TGL_FIX_ONE,TGL_FIX_ONE);
+    l->position=gl_V4_New(0,0,TGL_FIX_ONE,0);
+    l->norm_position=gl_V3_New(0,0,TGL_FIX_ONE);
+    l->spot_direction=gl_V3_New(0,0,-TGL_FIX_ONE);
+    l->norm_spot_direction=gl_V3_New(0,0,-TGL_FIX_ONE);
     l->spot_exponent=0;
-    l->spot_cutoff=180;
-    l->attenuation[0]=1;
+    l->spot_cutoff=TGL_I(180);
+    l->attenuation[0]=TGL_FIX_ONE;
     l->attenuation[1]=0;
     l->attenuation[2]=0;
     l->enabled=0;
   }
   c->first_light=NULL;
-  c->ambient_light_model=gl_V4_New(0.2,0.2,0.2,1);
+  c->ambient_light_model=gl_V4_New(TGL_FRAC(1,5),TGL_FRAC(1,5),TGL_FRAC(1,5),TGL_FIX_ONE);
   c->local_light_model=0;
   c->lighting_enabled=0;
   c->light_model_two_side = 0;
@@ -88,10 +88,10 @@ void glInit(void *zbuffer1)
   /* default materials */
   for(i=0;i<2;i++) {
     GLMaterial *m=&c->materials[i];
-    m->emission=gl_V4_New(0,0,0,1);
-    m->ambient=gl_V4_New(0.2,0.2,0.2,1);
-    m->diffuse=gl_V4_New(0.8,0.8,0.8,1);
-    m->specular=gl_V4_New(0,0,0,1);
+    m->emission=gl_V4_New(0,0,0,TGL_FIX_ONE);
+    m->ambient=gl_V4_New(TGL_FRAC(1,5),TGL_FRAC(1,5),TGL_FRAC(1,5),TGL_FIX_ONE);
+    m->diffuse=gl_V4_New(TGL_FRAC(4,5),TGL_FRAC(4,5),TGL_FRAC(4,5),TGL_FIX_ONE);
+    m->specular=gl_V4_New(0,0,0,TGL_FIX_ONE);
     m->shininess=0;
   }
   c->current_color_material_mode=GL_FRONT_AND_BACK;
@@ -102,25 +102,25 @@ void glInit(void *zbuffer1)
   glInitTextures(c);
 
   /* default state */
-  c->current_color.X=1.0;
-  c->current_color.Y=1.0;
-  c->current_color.Z=1.0;
-  c->current_color.W=1.0;
+  c->current_color.X=TGL_FIX_ONE;
+  c->current_color.Y=TGL_FIX_ONE;
+  c->current_color.Z=TGL_FIX_ONE;
+  c->current_color.W=TGL_FIX_ONE;
   c->longcurrent_color[0] = 65535;
   c->longcurrent_color[1] = 65535;
   c->longcurrent_color[2] = 65535;
 
-  c->current_normal.X=1.0;
-  c->current_normal.Y=0.0;
-  c->current_normal.Z=0.0;
-  c->current_normal.W=0.0;
+  c->current_normal.X=TGL_FIX_ONE;
+  c->current_normal.Y=0;
+  c->current_normal.Z=0;
+  c->current_normal.W=0;
 
   c->current_edge_flag=1;
   
   c->current_tex_coord.X=0;
   c->current_tex_coord.Y=0;
   c->current_tex_coord.Z=0;
-  c->current_tex_coord.W=1;
+  c->current_tex_coord.W=TGL_FIX_ONE;
 
   c->polygon_mode_front=GL_FILL;
   c->polygon_mode_back=GL_FILL;
