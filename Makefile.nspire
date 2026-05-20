@@ -30,7 +30,7 @@ else
 NSPIRE_RENDER_SCALE ?= 2
 CFLAGS = -Wno-incompatible-pointer-types -Ofast -marm -DNDEBUG -DNSPIRE_RELEASE_BUILD \
          -fomit-frame-pointer -ffunction-sections -fdata-sections \
-         -fno-strict-aliasing -fno-common
+         -fno-strict-aliasing -fno-common -funsafe-math-optimizations -funroll-loops  -fsplit-loops -funswitch-loops  -fsection-anchors  -ftracer -flto -fmin-function-alignment=16  -ftree-loop-im  -ftree-loop-ivcanon
 LDFLAGS = -Wl,--gc-sections
 endif
 
