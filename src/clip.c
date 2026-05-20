@@ -13,6 +13,9 @@
 void gl_transform_to_viewport(GLContext *c,GLVertex *v)
 {
   GLfixed winv;
+  GLfixed zndc;
+  int64_t zrange;
+  int64_t z;
 
   /* coordinates */
   winv=tgl_fix_div(TGL_FIX_ONE, v->pc.W);
@@ -20,8 +23,12 @@ void gl_transform_to_viewport(GLContext *c,GLVertex *v)
                    + c->viewport.trans.X);
   v->zp.y= tgl_fix_to_int(tgl_fix_mul(tgl_fix_mul(v->pc.Y, winv), c->viewport.scale.Y)
                    + c->viewport.trans.Y);
-  v->zp.z= tgl_fix_to_int(tgl_fix_mul(tgl_fix_mul(v->pc.Z, winv), c->viewport.scale.Z)
-                   + c->viewport.trans.Z);
+  zndc = tgl_fix_mul(v->pc.Z, winv);
+  zrange = (int64_t)1 << (ZB_Z_BITS + ZB_POINT_Z_FRAC_BITS);
+  z = ((int64_t)(TGL_FIX_ONE - zndc) * (zrange - 1)) >> (TGL_FIX_BITS + 1);
+  if (z < 0) z = 0;
+  if (z >= zrange) z = zrange - 1;
+  v->zp.z = (int)z;
   /* color */
   if (c->lighting_enabled) {
       v->zp.r=tgl_fix_to_range(v->color.v[0], ZB_POINT_RED_MIN, ZB_POINT_RED_MAX);
@@ -428,5 +435,4 @@ void gl_draw_triangle_point(GLContext *c,
   if (p1->edge_flag) ZB_plot(c->zb,&p1->zp);
   if (p2->edge_flag) ZB_plot(c->zb,&p2->zp);
 }
-
 

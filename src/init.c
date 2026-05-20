@@ -100,6 +100,7 @@ void glInit(void *zbuffer1)
 
   /* textures */
   glInitTextures(c);
+  c->unpack_alignment = 4;
 
   /* default state */
   c->current_color.X=TGL_FIX_ONE;
@@ -141,6 +142,7 @@ void glInit(void *zbuffer1)
   c->render_mode=GL_RENDER;
   c->select_buffer=NULL;
   c->name_stack_size=0;
+  c->error=GL_NO_ERROR;
 
   /* matrix */
   c->matrix_mode=0;
@@ -163,8 +165,38 @@ void glInit(void *zbuffer1)
 
   c->matrix_model_projection_updated=1;
 
-  /* opengl 1.1 arrays */
-  c->client_states = 0;
+  c->vertex_array.enabled = 0;
+  c->vertex_array.size = 4;
+  c->vertex_array.type = GL_FIXED;
+  c->vertex_array.stride = 0;
+  c->vertex_array.pointer = NULL;
+  c->vertex_array.buffer = NULL;
+
+  c->normal_array.enabled = 0;
+  c->normal_array.size = 3;
+  c->normal_array.type = GL_FIXED;
+  c->normal_array.stride = 0;
+  c->normal_array.pointer = NULL;
+  c->normal_array.buffer = NULL;
+
+  c->color_array.enabled = 0;
+  c->color_array.size = 4;
+  c->color_array.type = GL_FIXED;
+  c->color_array.stride = 0;
+  c->color_array.pointer = NULL;
+  c->color_array.buffer = NULL;
+
+  c->texcoord_array.enabled = 0;
+  c->texcoord_array.size = 4;
+  c->texcoord_array.type = GL_FIXED;
+  c->texcoord_array.stride = 0;
+  c->texcoord_array.pointer = NULL;
+  c->texcoord_array.buffer = NULL;
+
+  c->buffers = NULL;
+  c->array_buffer_binding = NULL;
+  c->element_array_buffer_binding = NULL;
+  c->next_buffer_handle = 1;
   
   /* opengl 1.1 polygon offset */
   c->offset_states = 0;
@@ -184,6 +216,14 @@ void glInit(void *zbuffer1)
 void glClose(void)
 {
   GLContext *c=gl_get_context();
+  GLBuffer *b,*next;
+  for (b = c->buffers; b != NULL; b = next) {
+    next = b->next;
+    if (b->data != NULL) gl_free(b->data);
+    gl_free(b);
+  }
   endSharedState(c);
+  if (c->vertex != NULL) gl_free(c->vertex);
   gl_free(c);
+  gl_ctx = NULL;
 }

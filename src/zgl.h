@@ -49,6 +49,44 @@ enum {
 #define TGL_OFFSET_LINE    0x2
 #define TGL_OFFSET_POINT   0x4
 
+/* Desktop-only constants kept private for legacy internal code paths. */
+#ifndef GL_POINT
+#define GL_POINT 0x1B00
+#endif
+#ifndef GL_LINE
+#define GL_LINE 0x1B01
+#endif
+#ifndef GL_FILL
+#define GL_FILL 0x1B02
+#endif
+#ifndef GL_QUADS
+#define GL_QUADS 0x0007
+#endif
+#ifndef GL_QUAD_STRIP
+#define GL_QUAD_STRIP 0x0008
+#endif
+#ifndef GL_POLYGON
+#define GL_POLYGON 0x0009
+#endif
+#ifndef GL_POLYGON_OFFSET_POINT
+#define GL_POLYGON_OFFSET_POINT 0x2A01
+#endif
+#ifndef GL_POLYGON_OFFSET_LINE
+#define GL_POLYGON_OFFSET_LINE 0x2A02
+#endif
+#ifndef GL_RENDER
+#define GL_RENDER 0x1C00
+#endif
+#ifndef GL_SELECT
+#define GL_SELECT 0x1C02
+#endif
+#ifndef GL_COMPILE
+#define GL_COMPILE 0x1300
+#endif
+#ifndef GL_COMPILE_AND_EXECUTE
+#define GL_COMPILE_AND_EXECUTE 0x1301
+#endif
+
 typedef struct GLSpecBuf {
   int shininess_i;
   int last_used;
@@ -128,6 +166,7 @@ typedef struct GLVertex {
 
 typedef struct GLImage {
   void *pixmap;
+  unsigned char *rgb;
   int xsize,ysize;
 } GLImage;
 
@@ -138,8 +177,28 @@ typedef struct GLImage {
 typedef struct GLTexture {
   GLImage images[MAX_TEXTURE_LEVELS];
   int handle;
+  int wrap_s,wrap_t;
+  int min_filter,mag_filter;
+  int env_mode;
   struct GLTexture *next,*prev;
 } GLTexture;
+
+typedef struct GLBuffer {
+  unsigned int handle;
+  unsigned char *data;
+  GLsizeiptr size;
+  GLenum usage;
+  struct GLBuffer *next;
+} GLBuffer;
+
+typedef struct GLArray {
+  int enabled;
+  int size;
+  GLenum type;
+  GLsizei stride;
+  const void *pointer;
+  GLBuffer *buffer;
+} GLArray;
 
 
 /* shared state */
@@ -177,6 +236,7 @@ typedef struct GLContext {
   /* textures */
   GLTexture *current_texture;
   int texture_2d_enabled;
+  int unpack_alignment;
 
   /* shared state */
   GLSharedState shared_state;
@@ -225,6 +285,8 @@ typedef struct GLContext {
   unsigned int name_stack[MAX_NAME_STACK_DEPTH];
   int name_stack_size;
 
+  GLenum error;
+
   /* clear */
   GLfixed clear_depth;
   V4 clear_color;
@@ -243,19 +305,14 @@ typedef struct GLContext {
   int vertex_max;
   GLVertex *vertex;
 
-  /* opengl 1.1 arrays  */
-  GLfixed *vertex_array;
-  int vertex_array_size;
-  int vertex_array_stride;
-  GLfixed *normal_array;
-  int normal_array_stride;
-  GLfixed *color_array;
-  int color_array_size;
-  int color_array_stride;
-  GLfixed *texcoord_array;
-  int texcoord_array_size;
-  int texcoord_array_stride;
-  int client_states;
+  GLArray vertex_array;
+  GLArray normal_array;
+  GLArray color_array;
+  GLArray texcoord_array;
+  GLBuffer *buffers;
+  GLBuffer *array_buffer_binding;
+  GLBuffer *element_array_buffer_binding;
+  unsigned int next_buffer_handle;
   
   /* opengl 1.1 polygon offset */
   GLfixed offset_factor;
@@ -280,6 +337,10 @@ typedef struct GLContext {
 extern GLContext *gl_ctx;
 
 void gl_add_op(GLParam *p);
+void gl_set_error(GLContext *c, GLenum error);
+void gl_submit_vertex(GLContext *c, GLfixed x, GLfixed y, GLfixed z, GLfixed w);
+int gl_begin_primitive(GLContext *c, GLenum mode);
+void gl_end_primitive(GLContext *c);
 
 /* clip.c */
 void gl_transform_to_viewport(GLContext *c,GLVertex *v);

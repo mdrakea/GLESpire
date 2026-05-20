@@ -55,17 +55,54 @@ void glopColor(GLContext * c, GLParam * p)
 void gl_eval_viewport(GLContext * c)
 {
     GLViewport *v;
-    GLfixed zsize = TGL_I((int64_t)1 << (ZB_Z_BITS + ZB_POINT_Z_FRAC_BITS));
 
     v = &c->viewport;
 
     v->trans.X = ((TGL_I(v->xsize) - TGL_FIX_HALF) / 2) + TGL_I(v->xmin);
     v->trans.Y = ((TGL_I(v->ysize) - TGL_FIX_HALF) / 2) + TGL_I(v->ymin);
-    v->trans.Z = ((zsize - TGL_FIX_HALF) / 2) + TGL_I((1 << ZB_POINT_Z_FRAC_BITS) / 2);
+    v->trans.Z = 0;
 
     v->scale.X = (TGL_I(v->xsize) - TGL_FIX_HALF) / 2;
     v->scale.Y = -((TGL_I(v->ysize) - TGL_FIX_HALF) / 2);
-    v->scale.Z = -((zsize - TGL_FIX_HALF) / 2);
+    v->scale.Z = 0;
+}
+
+int gl_begin_primitive(GLContext *c, GLenum mode)
+{
+    GLParam p[2];
+
+    if (c->in_begin) {
+        gl_set_error(c, GL_INVALID_OPERATION);
+        return 0;
+    }
+    p[0].op = OP_Begin;
+    p[1].i = mode;
+    glopBegin(c, p);
+    return 1;
+}
+
+void gl_submit_vertex(GLContext *c, GLfixed x, GLfixed y, GLfixed z, GLfixed w)
+{
+    GLParam p[5];
+
+    p[0].op = OP_Vertex;
+    p[1].f = x;
+    p[2].f = y;
+    p[3].f = z;
+    p[4].f = w;
+    glopVertex(c, p);
+}
+
+void gl_end_primitive(GLContext *c)
+{
+    GLParam p[1];
+
+    if (!c->in_begin) {
+        gl_set_error(c, GL_INVALID_OPERATION);
+        return;
+    }
+    p[0].op = OP_End;
+    glopEnd(c, p);
 }
 
 void glopBegin(GLContext * c, GLParam * p)

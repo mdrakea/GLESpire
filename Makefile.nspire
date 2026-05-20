@@ -51,13 +51,15 @@ TINYGL_SRCS = api.c list.c vertex.c init.c matrix.c texture.c \
 
 # Example
 EXAMPLE_NAME = nspire_gears
+COVERAGE_NAME = nspire_es11_coverage
 
 BUILD_DIR = build/debug$(DEBUG)-scale$(NSPIRE_RENDER_SCALE)-profiler$(NSPIRE_PROFILER)
 OBJ_DIR = $(BUILD_DIR)/obj
 TINYGL_OBJS = $(addprefix $(OBJ_DIR)/,$(TINYGL_SRCS:.c=.o))
 EXAMPLE_OBJ = $(OBJ_DIR)/$(EXAMPLE_NAME).o
+COVERAGE_OBJ = $(OBJ_DIR)/$(COVERAGE_NAME).o
 
-.PHONY: all clean lib example FORCE
+.PHONY: all clean lib example coverage FORCE
 
 all: lib
 
@@ -83,6 +85,13 @@ example: $(EXAMPLE_NAME).tns
 
 # Compile the example
 $(EXAMPLE_OBJ): $(EXAMPLES_DIR)/$(EXAMPLE_NAME).c
+	@mkdir -p $(@D)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+coverage: $(COVERAGE_OBJ)
+	@echo "Built ES 1.1 Common-Lite compile coverage: $<"
+
+$(COVERAGE_OBJ): $(EXAMPLES_DIR)/$(COVERAGE_NAME).c
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) -c $< -o $@
 
