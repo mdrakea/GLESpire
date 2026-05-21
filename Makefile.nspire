@@ -95,8 +95,8 @@ $(COVERAGE_OBJ): $(EXAMPLES_DIR)/$(COVERAGE_NAME).c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # Link: use the library + example .o
-$(EXAMPLE_NAME).elf: $(EXAMPLE_OBJ) $(NSPIRE_UTIL_LIB) libTinyGL.a
-	$(LD) $(LDFLAGS) -o $@ $(EXAMPLE_OBJ) -L. -lnspire_utils -lTinyGL -lndls
+$(EXAMPLE_NAME).elf: $(EXAMPLE_OBJ) $(NSPIRE_UTIL_LIB) libGLESpire.a
+	$(LD) $(LDFLAGS) -o $@ $(EXAMPLE_OBJ) -L. -lnspire_utils -lGLESpire -lndls
 
 $(EXAMPLE_NAME).tns: $(EXAMPLE_NAME).elf
 	$(GENZEHN) --input $< --output $@ --name "$(EXAMPLE_NAME)"
