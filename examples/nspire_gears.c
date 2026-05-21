@@ -1,9 +1,6 @@
 /*
- * TinyGL TI-Nspire example: 3-D gear wheels
- * Ported from the classic gears.c demo
+ * Ported from the classic gears.c demo for TI-nspire
  *
- * Build with TI-Nspire toolchain:
- *   nspire-gcc -o gears.tns gears.c nspire.c -lndls -lTinyGL
  *
  * Key mappings for TI-Nspire:
  *   Up/Down/Left/Right: Rotate view
@@ -859,9 +856,10 @@ int main(int argc, char **argv)
     (void)argc;
     (void)argv;
 
-    puts("TinyGL TI-Nspire Demo");
+    puts("G(ear)LESpire");
     puts("Press arrow keys to rotate view");
     puts("+/- to adjust speed, ESC to exit");
+    puts("Enjoy~ <3")
 
     /* Setup framebuffers */
     framebuffers[0] = framebuffer1;
