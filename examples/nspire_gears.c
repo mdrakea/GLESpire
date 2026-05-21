@@ -859,7 +859,7 @@ int main(int argc, char **argv)
     puts("G(ear)LESpire");
     puts("Press arrow keys to rotate view");
     puts("+/- to adjust speed, ESC to exit");
-    puts("Enjoy~ <3")
+    puts("Enjoy~ <3");
 
     /* Setup framebuffers */
     framebuffers[0] = framebuffer1;
